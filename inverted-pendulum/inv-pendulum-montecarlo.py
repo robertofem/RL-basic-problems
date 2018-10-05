@@ -27,8 +27,8 @@ if __name__ == "__main__":
   #Create the artificial neural network (ann)
   ann = Sequential()
 
-  ann.add(Dense(64, input_dim = state_size, activation='sigmoid'))
-  ann.add(Dense(64, activation='relu'))
+  ann.add(Dense(24, input_dim = state_size, activation='relu'))
+  ann.add(Dense(24, activation='relu'))
   ann.add(Dense(2, activation='linear'))
   ann.compile(loss='mse', optimizer=Adam(LEARNING_RATE), metrics=['mae'])
 
