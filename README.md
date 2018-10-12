@@ -2,7 +2,7 @@
 
 ## Introduction
 Test of different Reinforcement Learning (RL) algorithms in basic problems
-using Python 3.5, neural nets in Keras and Gym.
+using Python 3, neural nets in Keras and Gym.
 
 Problems:
   * Inverted Pendulum: Solve the inverted pendulum problem in Gym using Q-learning.
@@ -18,7 +18,7 @@ First install python 3.6 64-bit (last version compatible with tensorflow). The f
 
 Install virtualenv using pip and create a virtual environment:
 ```bash
- $ pip3 install virtualenv
+ $ pip3 install virtualenvwrapper-win
  $ mkvirtualenv rl
 ```
 
@@ -36,10 +36,10 @@ Install TensorFlow (it is needed to specify the location of the file) with
 Install Keras with:
 ```bash
 #Install some dependencies
-$ pip install numpy scipy
-$ pip install scikit-learn
-$ pip install pillow
-$ pip install h5py
+ (rl) $ pip install numpy scipy
+ (rl) $ pip install scikit-learn
+ (rl) $ pip install pillow
+ (rl) $ pip install h5py
 #Install keras with tensorflow backend
-pip install keras
+ (rl) pip install keras
 ```

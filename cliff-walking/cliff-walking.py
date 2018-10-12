@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 GRID_WIDTH  = 12
 GRID_HEIGHT = 4
 
-EPISODES = 5000
+EPISODES = 1000
 
 class CliffWalkingEnv:
     def __init__(self):
@@ -67,9 +67,9 @@ class Agent:
         # Possible actions
         self.ACTIONS = ["Up", "Down", "Left", "Right"]
         # Define some constants for the learning
-        self.EPSILON_DECAY = 0.999
-        self.EPSILON_ALFA = 0.001
-        self.GANMA = 0.95
+        self.EPSILON_DECAY = 0.995
+        self.ALFA = 0.008 # learning rate
+        self.GANMA = 0.95 # disccount factor
 
     def _build_model(self):
         # Create the model all with zeros
@@ -79,7 +79,7 @@ class Agent:
             for y in range(GRID_HEIGHT):
                 for action in range(4):
                     if not ((y == 0) and (x == (GRID_WIDTH - 1))):
-                        self.model[x, y, action] = np.random.rand()*100
+                        self.model[x, y, action] = -12#np.random.rand()*-100
         # Reset the training variables
         self.epsilon = 1.0
 
@@ -93,7 +93,7 @@ class Agent:
 
     def train_episode(self, env):
         if self.agent_type == "SARSA":
-            self.train_sarsa(env)
+            return self.train_sarsa(env)
 
     def train_sarsa(self, env):
         state = env.reset()
@@ -104,32 +104,43 @@ class Agent:
             new_state, reward, done, _ = env.step(action)
             new_action = agent.choose_action(new_state)
             # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
-            self.model[state[0][0], state[0][1], action] += self.ALFA* \
-                (reward + self.GANMA*self.predict(new_state)[new_action] \
-                - self.predict(state)[action])
+            self.model[state[0,0], state[0,1], self.ACTIONS.index(action)] \
+                += self.ALFA* \
+                (reward + self.GANMA*self.predict(new_state)[self.ACTIONS.index(new_action)] \
+                - self.predict(state)[self.ACTIONS.index(action)])
             state = new_state
             action = new_action
-            self.epsilon *= self.EPSILON_DECAY
             episode_reward += reward
-        return episode_reward
+        self.epsilon *= self.EPSILON_DECAY
+        return episode_reward, self.epsilon
 
     def predict(self, state):
-        return self.model[state[0],state[1]]
+        ret_val = self.model[state[0, 0], state[0, 1], :]
+        return ret_val
 
 if __name__ == "__main__":
     agent_types = ["SARSA"]
     fig = plt.figure()
     fig.suptitle('Rewards')
     rewards = {}
+    rewards_average = {}
     for i in range(len(agent_types)):
         env = CliffWalkingEnv()
         agent = Agent(agent_types[i])
-        rewards[i] = []
+        rewards[i] = np.zeros([EPISODES])
+        rewards_average[i] = np.zeros([EPISODES])
         for e in range(EPISODES):
-            episode_reward = agent.train_episode(env)
-            rewards[i].append(episode_reward)
-            fig.clf()
-            fig.xlabel("Episode")
-            fig.ylabel("Reward")
-            for j in range(len(agent_types)):
-                fig.plot(range(len(rewards[j])), rewards[j], label=agent_types[j])
+            episode_reward, epsilon = agent.train_episode(env)
+            rewards[i][e] = episode_reward
+            rewards_average[i][e] = np.mean(rewards[i][max(0,e-100):e])
+            print("episode: {} epsilon:{} reward:{} averaged reward:{}".format(e, epsilon, rewards[i][e], rewards_average[i][e]))
+
+        #calculate the mean
+        fig.clf()
+        plt.xlabel("Episode")
+        plt.ylabel("Reward")
+        for j in range(len(agent_types)):
+            plt.plot(range(len(rewards[j])), rewards[j], \
+                     range(len(rewards_average[j])), rewards_average[j])
+        plt.show()
+
