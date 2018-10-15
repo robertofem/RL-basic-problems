@@ -84,7 +84,7 @@ class Agent:
         self.epsilon = 1.0
 
     def choose_action(self, state):
-        if self.agent_type == "SARSA":
+        if self.agent_type == "SARSA" or self.agent_type == "Q-Learning":
             if np.random.rand() <= self.epsilon:
                 action = self.ACTIONS[random.randrange(4)]
             else:
@@ -94,6 +94,8 @@ class Agent:
     def train_episode(self, env):
         if self.agent_type == "SARSA":
             return self.train_sarsa(env)
+        if self.agent_type == "Q-Learning":
+            return self.train_qlearning(env)
 
     def train_sarsa(self, env):
         state = env.reset()
@@ -114,14 +116,31 @@ class Agent:
         self.epsilon *= self.EPSILON_DECAY
         return episode_reward, self.epsilon
 
+    def train_qlearning(self, env):
+        state = env.reset()
+        done = False
+        episode_reward = 0
+        while not done:
+            action = self.choose_action(state)
+            new_state, reward, done, _ = env.step(action)
+            # Q(S;A)<-Q(S;A) + alfa[R + ganma*maxQ(S';a) - Q(S;A)]
+            self.model[state[0,0], state[0,1], self.ACTIONS.index(action)] \
+                += self.ALFA* \
+                (reward + self.GANMA*np.amax(self.predict(new_state)) \
+                - self.predict(state)[self.ACTIONS.index(action)])
+            state = new_state
+            episode_reward += reward
+        self.epsilon *= self.EPSILON_DECAY
+        return episode_reward, self.epsilon
+
     def predict(self, state):
         ret_val = self.model[state[0, 0], state[0, 1], :]
         return ret_val
 
 if __name__ == "__main__":
-    agent_types = ["SARSA"]
-    fig = plt.figure()
-    fig.suptitle('Rewards')
+    agent_types = ["SARSA","Q-Learning"]
+
+    # Train
     rewards = {}
     rewards_average = {}
     for i in range(len(agent_types)):
@@ -135,12 +154,12 @@ if __name__ == "__main__":
             rewards_average[i][e] = np.mean(rewards[i][max(0,e-100):e])
             print("episode: {} epsilon:{} reward:{} averaged reward:{}".format(e, epsilon, rewards[i][e], rewards_average[i][e]))
 
-        #calculate the mean
-        fig.clf()
+        #Plot
+        fig, ax = plt.subplots()
+        fig.suptitle('Rewards')
+        for j in range(len(rewards_average)):
+            ax.plot(range(len(rewards_average[j])), rewards_average[j], label=agent_types[j])
+        legend = ax.legend(loc='upper center', shadow=True, fontsize='x-large')
         plt.xlabel("Episode")
         plt.ylabel("Reward")
-        for j in range(len(agent_types)):
-            plt.plot(range(len(rewards[j])), rewards[j], \
-                     range(len(rewards_average[j])), rewards_average[j])
         plt.show()
-
