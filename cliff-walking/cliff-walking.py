@@ -7,13 +7,15 @@ import matplotlib.pyplot as plt
 GRID_WIDTH  = 12
 GRID_HEIGHT = 4
 
-EPISODES = 1000
+EPISODES = 250
 
 class CliffWalkingEnv:
     def __init__(self):
         # Size of the space
         self.max_x = GRID_WIDTH
         self.max_y = GRID_HEIGHT
+        # Possible actions
+        self.ACTIONS = ["Up", "Down", "Left", "Right"]
 
     def reset(self):
         #Reset the environment (start a new episode)
@@ -24,6 +26,7 @@ class CliffWalkingEnv:
 
     def step(self, action):
         #Move depending on the action
+        action = self.ACTIONS[action]
         if action == "Up":
             if self.Y < (self.max_y - 1):
                 self.Y += 1
@@ -64,12 +67,13 @@ class Agent:
     def __init__(self, agent_type = "SARSA"):
         self.agent_type = agent_type
         self._build_model()
-        # Possible actions
-        self.ACTIONS = ["Up", "Down", "Left", "Right"]
         # Define some constants for the learning
-        self.EPSILON_DECAY = 0.995
-        self.ALFA = 0.008 # learning rate
+        self.EPSILON_DECAY = 0.95
+        self.EPSILON_MIN = 0.0
+        self.ALFA = 0.04 # learning rate
         self.GANMA = 0.95 # disccount factor
+        # Reset the training variables
+        self.epsilon = 1.0
 
     def _build_model(self):
         # Create the model all with zeros
@@ -80,57 +84,59 @@ class Agent:
                 for action in range(4):
                     if not ((y == 0) and (x == (GRID_WIDTH - 1))):
                         self.model[x, y, action] = -12#np.random.rand()*-100
-        # Reset the training variables
-        self.epsilon = 1.0
 
-    def choose_action(self, state):
+    def _choose_action(self, state):
         if self.agent_type == "SARSA" or self.agent_type == "Q-Learning":
             if np.random.rand() <= self.epsilon:
-                action = self.ACTIONS[random.randrange(4)]
+                action = random.randrange(4)
             else:
-                action = self.ACTIONS[np.argmax(self.predict(state))]
+                action = np.argmax(self.predict(state))
         return action
 
     def train_episode(self, env):
         if self.agent_type == "SARSA":
-            return self.train_sarsa(env)
+            return self._train_sarsa(env)
         if self.agent_type == "Q-Learning":
-            return self.train_qlearning(env)
+            return self._train_qlearning(env)
 
-    def train_sarsa(self, env):
+    def _train_sarsa(self, env):
         state = env.reset()
-        action = self.choose_action(state)
+        action = self._choose_action(state)
         done = False
         episode_reward = 0
         while not done:
             new_state, reward, done, _ = env.step(action)
-            new_action = agent.choose_action(new_state)
+            new_action = self._choose_action(new_state)
             # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
-            self.model[state[0,0], state[0,1], self.ACTIONS.index(action)] \
+            self.model[state[0,0], state[0,1], action] \
                 += self.ALFA* \
-                (reward + self.GANMA*self.predict(new_state)[self.ACTIONS.index(new_action)] \
-                - self.predict(state)[self.ACTIONS.index(action)])
+                (reward + self.GANMA*self.predict(new_state)[new_action] \
+                - self.predict(state)[action])
             state = new_state
             action = new_action
             episode_reward += reward
         self.epsilon *= self.EPSILON_DECAY
+        if self.epsilon < self.EPSILON_MIN:
+            self.epsilon = self.EPSILON_MIN
         return episode_reward, self.epsilon
 
-    def train_qlearning(self, env):
+    def _train_qlearning(self, env):
         state = env.reset()
         done = False
         episode_reward = 0
         while not done:
-            action = self.choose_action(state)
+            action = self._choose_action(state)
             new_state, reward, done, _ = env.step(action)
             # Q(S;A)<-Q(S;A) + alfa[R + ganma*maxQ(S';a) - Q(S;A)]
-            self.model[state[0,0], state[0,1], self.ACTIONS.index(action)] \
+            self.model[state[0,0], state[0,1], action] \
                 += self.ALFA* \
                 (reward + self.GANMA*np.amax(self.predict(new_state)) \
-                - self.predict(state)[self.ACTIONS.index(action)])
+                - self.predict(state)[action])
             state = new_state
             episode_reward += reward
         self.epsilon *= self.EPSILON_DECAY
+        if self.epsilon < self.EPSILON_MIN:
+            self.epsilon = self.EPSILON_MIN
         return episode_reward, self.epsilon
 
     def predict(self, state):
@@ -151,15 +157,15 @@ if __name__ == "__main__":
         for e in range(EPISODES):
             episode_reward, epsilon = agent.train_episode(env)
             rewards[i][e] = episode_reward
-            rewards_average[i][e] = np.mean(rewards[i][max(0,e-100):e])
+            rewards_average[i][e] = np.mean(rewards[i][max(0,e-10):e])
             print("episode: {} epsilon:{} reward:{} averaged reward:{}".format(e, epsilon, rewards[i][e], rewards_average[i][e]))
 
-        #Plot
-        fig, ax = plt.subplots()
-        fig.suptitle('Rewards')
-        for j in range(len(rewards_average)):
-            ax.plot(range(len(rewards_average[j])), rewards_average[j], label=agent_types[j])
-        legend = ax.legend(loc='upper center', shadow=True, fontsize='x-large')
-        plt.xlabel("Episode")
-        plt.ylabel("Reward")
-        plt.show()
+    #Plot
+    fig, ax = plt.subplots()
+    fig.suptitle('Rewards')
+    for j in range(len(rewards_average)):
+        ax.plot(range(len(rewards_average[j])), rewards_average[j], label=agent_types[j])
+    legend = ax.legend(loc='lower right', shadow=True, fontsize='x-large')
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.show()
