@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 GRID_WIDTH  = 12
 GRID_HEIGHT = 4
 
-EPISODES = 250
+EPISODES = 500
 
 class CliffWalkingEnv:
     def __init__(self):
@@ -86,11 +86,10 @@ class Agent:
                         self.model[x, y, action] = -12#np.random.rand()*-100
 
     def _choose_action(self, state):
-        if self.agent_type == "SARSA" or self.agent_type == "Q-Learning":
-            if np.random.rand() <= self.epsilon:
-                action = random.randrange(4)
-            else:
-                action = np.argmax(self.predict(state))
+        if np.random.rand() <= self.epsilon:
+            action = random.randrange(4)
+        else:
+            action = np.argmax(self.predict(state))
         return action
 
     def train_episode(self, env):
@@ -98,6 +97,10 @@ class Agent:
             return self._train_sarsa(env)
         if self.agent_type == "Q-Learning":
             return self._train_qlearning(env)
+        if self.agent_type == "Expected SARSA":
+            return self._train_expected_sarsa(env)
+        if self.agent_type == "n-step SARSA":
+            return self._train_nstep_sarsa(env)
 
     def _train_sarsa(self, env):
         state = env.reset()
@@ -139,12 +142,79 @@ class Agent:
             self.epsilon = self.EPSILON_MIN
         return episode_reward, self.epsilon
 
+    def _train_expected_sarsa(self, env):
+        state = env.reset()
+        action = self._choose_action(state)
+        done = False
+        episode_reward = 0
+        while not done:
+            new_state, reward, done, _ = env.step(action)
+            new_action = self._choose_action(new_state)
+            # Q(S;A)<-Q(S;A) + alfa[R + E[Q(S';A')|S'] - Q(S;A)]
+            self.model[state[0,0], state[0,1], action] \
+                += self.ALFA* \
+                (reward + self.GANMA*(1/4)*np.sum(self.predict(new_state)) \
+                - self.predict(state)[action])
+            state = new_state
+            action = new_action
+            episode_reward += reward
+        self.epsilon *= self.EPSILON_DECAY
+        if self.epsilon < self.EPSILON_MIN:
+            self.epsilon = self.EPSILON_MIN
+        return episode_reward, self.epsilon
+
+    def _train_nstep_sarsa(self, env):
+        N=2
+        R = deque()
+        A = deque()
+        S = deque()
+        state = env.reset()
+        action = self._choose_action(state)
+        done = False
+        episode_reward = 0
+        S.append(state)
+        A.append(action)
+        T = float("inf")
+        t=0
+        while not done:
+            new_state, reward, done, _ = env.step(action)
+            episode_reward += reward
+            R.append(reward)
+            S.append(new_state)
+            if done:#if St+1 terminal
+                T = t + 1;
+            else:
+                action = self._choose_action(new_state)
+                A.append(action)
+
+            tau = t - N + 1
+            if tau >= 0:
+                G = 0.0
+                for i in range(tau+1, min(tau+N,T)):
+                    G += (self.GANMA**(i-tau-1)) * R[i]
+                if (tau + N < T):
+                    G = G + (self.GANMA**N)*self.predict(S[tau+N])[A[tau+N]]
+                    # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
+                    self.model[S[tau][0,0], S[tau][0,1], A[tau]] \
+                    += self.ALFA* (G - self.predict(S[tau])[A[tau]])
+
+            if tau == T - 1:
+              break
+            # Count the time
+            t += 1
+
+        self.epsilon *= self.EPSILON_DECAY
+        if self.epsilon < self.EPSILON_MIN:
+            self.epsilon = self.EPSILON_MIN
+        return episode_reward, self.epsilon
+
     def predict(self, state):
         ret_val = self.model[state[0, 0], state[0, 1], :]
         return ret_val
 
 if __name__ == "__main__":
-    agent_types = ["SARSA","Q-Learning"]
+    #agent_types = ["SARSA","Q-Learning","Expected SARSA", "n-step SARSA"]
+    agent_types = ["n-step SARSA"]
 
     # Train
     rewards = {}
@@ -157,7 +227,7 @@ if __name__ == "__main__":
         for e in range(EPISODES):
             episode_reward, epsilon = agent.train_episode(env)
             rewards[i][e] = episode_reward
-            rewards_average[i][e] = np.mean(rewards[i][max(0,e-10):e])
+            rewards_average[i][e] = np.mean(rewards[i][max(0,e-20):e])
             print("episode: {} epsilon:{} reward:{} averaged reward:{}".format(e, epsilon, rewards[i][e], rewards_average[i][e]))
 
     #Plot
