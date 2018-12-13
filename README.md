@@ -5,7 +5,10 @@ Test of different Reinforcement Learning (RL) algorithms in basic problems
 using Python 3, neural nets in Keras and Gym.
 
 Problems:
-  * Inverted Pendulum: Solve the inverted pendulum problem in Gym using Q-learning.
+  * Inverted Pendulum: try to solve the Gym inverted pendulum problem using Q-learning for reinforcement learning and and a neural network as agent. It does not converge. It may be a programming error on the reinforcement learning algorithm or an error on how the neural network is trained (probably can be solved in the following way: for each time step retraining the network with a bunch of previous time steps randomly selected instead of just traning with the results of the last time step). (CHRISTIAN, USE THIS ONLY TO CHECK THE SYNTHAX FOR CALLING NEURAL NETWORKS)
+
+  * Cliff walking: solves the the cliff walking problem (instructions inside the folder) with 4 different reinforcement learning algorithms using a table as agent. It converges properly and fast for all different reinforcement algorithms tested. The program plots the reward vs time step for the different algorithms tested.
+ (CHRISTIAN, COPY FROM HERE THE AGENTS TO BE SURE THAT Q-LEARNING AND OTHER METHODS ARE PROPERLY PROGRAMMED)
 
 
 ## Install libraries Windows
