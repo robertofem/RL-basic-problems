@@ -164,7 +164,7 @@ class Agent:
         return episode_reward, self.epsilon
 
     def _train_nstep_sarsa(self, env):
-        N=2
+        N=3
         R = deque()
         A = deque()
         S = deque()
@@ -213,8 +213,8 @@ class Agent:
         return ret_val
 
 if __name__ == "__main__":
-    #agent_types = ["SARSA","Q-Learning","Expected SARSA", "n-step SARSA"]
-    agent_types = ["n-step SARSA"]
+    agent_types = ["SARSA","Q-Learning","Expected SARSA", "n-step SARSA"]
+    #agent_types = ["n-step SARSA"]
 
     # Train
     rewards = {}
