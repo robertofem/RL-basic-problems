@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 GRID_WIDTH  = 12
 GRID_HEIGHT = 4
 
-EPISODES = 500
+EPISODES = 2000
 
 class CliffWalkingEnv:
     def __init__(self):
@@ -68,10 +68,13 @@ class Agent:
         self.agent_type = agent_type
         self._build_model()
         # Define some constants for the learning
-        self.EPSILON_DECAY = 0.95
+        #self.EPSILON_DECAY = 0.95
+        self.EPSILON_DECAY = 0.9998
         self.EPSILON_MIN = 0.0
-        self.ALFA = 0.04 # learning rate
-        self.GANMA = 0.95 # disccount factor
+        #self.ALFA = 0.04 # learning rate
+        self.ALFA = 0.00003 # learning rate
+        #self.GANMA = 0.95 # disccount factor
+        self.GANMA = 0.98 # disccount factor
         # Reset the training variables
         self.epsilon = 1.0
 
@@ -212,11 +215,9 @@ class Agent:
         return new_state, reward, done, self.epsilon
 
 
-
-
 if __name__ == "__main__":
-    agent_types = ["SARSA","Q-Learning","Expected SARSA"]#, "n-step SARSA"]
-    #agent_types = ["n-step SARSA"]
+    #agent_types = ["SARSA","Q-Learning","Expected SARSA"]#, "n-step SARSA"]
+    agent_types = ["n-step SARSA"]
 
     # Train
     epi_reward = {}
