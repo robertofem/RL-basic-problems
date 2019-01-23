@@ -11,7 +11,7 @@ Problems:
  (CHRISTIAN, COPY FROM HERE THE AGENTS TO BE SURE THAT Q-LEARNING AND OTHER METHODS ARE PROPERLY PROGRAMMED)
 
 
-## Install libraries Windows
+## Install libraries
 
 First install python 3.6 64-bit (last version compatible with tensorflow). The following  libraries are required:
   * numpy
@@ -19,30 +19,60 @@ First install python 3.6 64-bit (last version compatible with tensorflow). The f
   * tensorflow
   * keras
 
-Install virtualenv using pip and create a virtual environment:
+Install virtualenv using pip:
+
+* Windows:
+    ```bash
+     $ pip3 install virtualenvwrapper-win
+    ```
+* Ubuntu:
+    ```bash
+    $ pip install virtualenv
+    ```
+Create a virtual environment:
+
 ```bash
- $ pip3 install virtualenvwrapper-win
- $ mkvirtualenv rl
+# initialize virtualenv variables (always needed on terminal start-up)
+$ source /usr/local/bin/virtualenvwrapper.sh
+$ export WORKON_HOME=$HOME/.virtualenvs
+# virtual environment creation
+$ virtualenv --python=/usr/bin/python3.6 /home/<username>/.virtualenvs/<envname>/
+# start using the virtual environment
+$ workon <envname>
 ```
+
 
 Install numpy and gym using:
 ```bash
- (rl) $ pip install numpy
- (rl) $ pip install gym
+ (<envname>) $ pip install numpy
+ (<envname>) $ pip install gym
 ```
 
-Install TensorFlow (it is needed to specify the location of the file) with
-```bash
- (rl) $ python -m pip install --upgrade https://storage.googleapis.com/tensorflow/windows/cpu/tensorflow-1.11.0-cp36-cp36m-win_amd64.whl
-```
+Install TensorFlow (it is needed to specify the location of the file):
 
+* Windows:
+    ```bash
+     (<envname>) $ python -m pip install --upgrade https://storage.googleapis.com/tensorflow/windows/cpu/tensorflow-1.11.0-cp36-cp36m-win_amd64.whl
+    ```
+* Ubuntu:
+    ```bash
+     (<envname>) $ pip install --upgrade tensorflow
+    ```
 Install Keras with:
 ```bash
 #Install some dependencies
- (rl) $ pip install numpy scipy
+ (rl) $ pip install scipy
+ (rl) $ pip install matplotlib
  (rl) $ pip install scikit-learn
  (rl) $ pip install pillow
  (rl) $ pip install h5py
 #Install keras with tensorflow backend
  (rl) pip install keras
 ```
+Install TKinter with:
+
+* Windows: already comes with Python.
+* Ubuntu:
+    ```bash
+    $ sudo apt-get install python3.6-tk
+    ```
