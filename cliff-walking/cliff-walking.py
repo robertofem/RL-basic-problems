@@ -111,7 +111,16 @@ class Agent:
         self.action = self._choose_action(self.state)
 
     def _init_episode_n_step_sarsa(self, env):
-        pass
+        self.N=3
+        self.R = deque()
+        self.A = deque()
+        self.S = deque()
+        self.state = env.reset()
+        self.action = self._choose_action(self.state)
+        self.S.append(self.state)
+        self.A.append(self.action)
+        self.T = float("inf")
+        self.t=0
 
     def train_step(self, env):
         if self.agent_type == "SARSA":
@@ -170,50 +179,38 @@ class Agent:
                 self.epsilon = self.EPSILON_MIN
         return new_state, reward, done, self.epsilon
 
-    def _train_nstep_sarsa(self, env):
-        N=3
-        R = deque()
-        A = deque()
-        S = deque()
-        state = env.reset()
-        action = self._choose_action(state)
-        done = False
-        episode_reward = 0
-        S.append(state)
-        A.append(action)
-        T = float("inf")
-        t=0
-        while not done:
-            new_state, reward, done, _ = env.step(action)
-            episode_reward += reward
-            R.append(reward)
-            S.append(new_state)
-            if done:#if St+1 terminal
-                T = t + 1;
-            else:
-                action = self._choose_action(new_state)
-                A.append(action)
+    def _train_step_nstep_sarsa(self, env):
+        new_state, reward, done, _ = env.step(self.action)
+        self.R.append(reward)
+        self.S.append(new_state)
+        if done:#if St+1 terminal
+            self.T = self.t + 1;
+        else:
+            self.action = self._choose_action(new_state)
+            self.A.append(self.action)
 
-            tau = t - N + 1
-            if tau >= 0:
-                G = 0.0
-                for i in range(tau+1, min(tau+N,T)):
-                    G += (self.GANMA**(i-tau-1)) * R[i]
-                if (tau + N < T):
-                    G = G + (self.GANMA**N)*self.predict(S[tau+N])[A[tau+N]]
-                    # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
-                    self.model[S[tau][0,0], S[tau][0,1], A[tau]] \
-                    += self.ALFA* (G - self.predict(S[tau])[A[tau]])
+        tau = self.t - self.N + 1
+        if tau >= 0:
+            G = 0.0
+            for i in range(tau+1, min(tau+self.N,self.T)):
+                G += (self.GANMA**(i-tau-1)) * self.R[i]
+            if (tau + self.N < self.T):
+                G = G + (self.GANMA**self.N)\
+                *self.predict(self.S[tau+self.N])[self.A[tau+self.N]]
+                # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
+                self.model[self.S[tau][0,0], self.S[tau][0,1], self.A[tau]] \
+                += self.ALFA* (G - self.predict(self.S[tau])[self.A[tau]])
 
-            if tau == T - 1:
-              break
-            # Count the time
-            t += 1
+        # Count the time
+        if tau != self.T - 1:
+          self.t += 1
 
-        self.epsilon *= self.EPSILON_DECAY
-        if self.epsilon < self.EPSILON_MIN:
-            self.epsilon = self.EPSILON_MIN
-        return episode_reward, self.epsilon
+        if done:
+            self.epsilon *= self.EPSILON_DECAY
+            if self.epsilon < self.EPSILON_MIN:
+                self.epsilon = self.EPSILON_MIN
+        return new_state, reward, done, self.epsilon
+
 
 
 
