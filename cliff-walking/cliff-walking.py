@@ -92,76 +92,83 @@ class Agent:
             action = np.argmax(self.predict(state))
         return action
 
-    def train_episode(self, env):
+    def predict(self, state):
+        ret_val = self.model[state[0, 0], state[0, 1], :]
+        return ret_val
+
+    def init_episode(self, env):
         if self.agent_type == "SARSA":
-            return self._train_sarsa(env)
+            return self._init_episode_sarsa_qlearning(env)
         if self.agent_type == "Q-Learning":
-            return self._train_qlearning(env)
+            return self._init_episode_sarsa_qlearning(env)
         if self.agent_type == "Expected SARSA":
-            return self._train_expected_sarsa(env)
+            return self._init_episode_sarsa_qlearning(env)
         if self.agent_type == "n-step SARSA":
-            return self._train_nstep_sarsa(env)
+            return self._init_episode_n_step_sarsa(env)
 
-    def _train_sarsa(self, env):
-        state = env.reset()
-        action = self._choose_action(state)
-        done = False
-        episode_reward = 0
-        while not done:
-            new_state, reward, done, _ = env.step(action)
-            new_action = self._choose_action(new_state)
-            # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
-            self.model[state[0,0], state[0,1], action] \
-                += self.ALFA* \
-                (reward + self.GANMA*self.predict(new_state)[new_action] \
-                - self.predict(state)[action])
-            state = new_state
-            action = new_action
-            episode_reward += reward
-        self.epsilon *= self.EPSILON_DECAY
-        if self.epsilon < self.EPSILON_MIN:
-            self.epsilon = self.EPSILON_MIN
-        return episode_reward, self.epsilon
+    def _init_episode_sarsa_qlearning(self, env):
+        self.state = env.reset()
+        self.action = self._choose_action(self.state)
 
-    def _train_qlearning(self, env):
-        state = env.reset()
-        done = False
-        episode_reward = 0
-        while not done:
-            action = self._choose_action(state)
-            new_state, reward, done, _ = env.step(action)
-            # Q(S;A)<-Q(S;A) + alfa[R + ganma*maxQ(S';a) - Q(S;A)]
-            self.model[state[0,0], state[0,1], action] \
-                += self.ALFA* \
-                (reward + self.GANMA*np.amax(self.predict(new_state)) \
-                - self.predict(state)[action])
-            state = new_state
-            episode_reward += reward
-        self.epsilon *= self.EPSILON_DECAY
-        if self.epsilon < self.EPSILON_MIN:
-            self.epsilon = self.EPSILON_MIN
-        return episode_reward, self.epsilon
+    def _init_episode_n_step_sarsa(self, env):
+        pass
 
-    def _train_expected_sarsa(self, env):
-        state = env.reset()
-        action = self._choose_action(state)
-        done = False
-        episode_reward = 0
-        while not done:
-            new_state, reward, done, _ = env.step(action)
-            new_action = self._choose_action(new_state)
-            # Q(S;A)<-Q(S;A) + alfa[R + E[Q(S';A')|S'] - Q(S;A)]
-            self.model[state[0,0], state[0,1], action] \
-                += self.ALFA* \
-                (reward + self.GANMA*(1/4)*np.sum(self.predict(new_state)) \
-                - self.predict(state)[action])
-            state = new_state
-            action = new_action
-            episode_reward += reward
-        self.epsilon *= self.EPSILON_DECAY
-        if self.epsilon < self.EPSILON_MIN:
-            self.epsilon = self.EPSILON_MIN
-        return episode_reward, self.epsilon
+    def train_step(self, env):
+        if self.agent_type == "SARSA":
+            return self._train_step_sarsa(env)
+        if self.agent_type == "Q-Learning":
+            return self._train_step_qlearning(env)
+        if self.agent_type == "Expected SARSA":
+            return self._train_step_expected_sarsa(env)
+        if self.agent_type == "n-step SARSA":
+            return self._train_step_nstep_sarsa(env)
+
+    def _train_step_sarsa(self, env):
+        new_state, reward, done, _ = env.step(self.action)
+        new_action = self._choose_action(new_state)
+        # Q(S;A)<-Q(S;A) + alfa[R + ganma*Q(S';A') - Q(S;A)]
+        self.model[self.state[0,0], self.state[0,1], self.action] \
+            += self.ALFA* \
+            (reward + self.GANMA*self.predict(new_state)[new_action] \
+            - self.predict(self.state)[self.action])
+        self.state = new_state
+        self.action = new_action
+        if done:
+            self.epsilon *= self.EPSILON_DECAY
+            if self.epsilon < self.EPSILON_MIN:
+                self.epsilon = self.EPSILON_MIN
+        return new_state, reward, done, self.epsilon
+
+    def _train_step_qlearning(self, env):
+        self.action = self._choose_action(self.state)
+        new_state, reward, done, _ = env.step(self.action)
+        # Q(S;A)<-Q(S;A) + alfa[R + ganma*maxQ(S';a) - Q(S;A)]
+        self.model[self.state[0,0], self.state[0,1], self.action] \
+            += self.ALFA* \
+            (reward + self.GANMA*np.amax(self.predict(new_state)) \
+            - self.predict(self.state)[self.action])
+        self.state = new_state
+        if done:
+            self.epsilon *= self.EPSILON_DECAY
+            if self.epsilon < self.EPSILON_MIN:
+                self.epsilon = self.EPSILON_MIN
+        return new_state, reward, done, self.epsilon
+
+    def _train_step_expected_sarsa(self, env):
+        new_state, reward, done, _ = env.step(self.action)
+        new_action = self._choose_action(new_state)
+        # Q(S;A)<-Q(S;A) + alfa[R + E[Q(S';A')|S'] - Q(S;A)]
+        self.model[self.state[0,0], self.state[0,1], self.action] \
+            += self.ALFA* \
+            (reward + self.GANMA*(1/4)*np.sum(self.predict(new_state)) \
+            - self.predict(self.state)[self.action])
+        self.state = new_state
+        self.action = new_action
+        if done:
+            self.epsilon *= self.EPSILON_DECAY
+            if self.epsilon < self.EPSILON_MIN:
+                self.epsilon = self.EPSILON_MIN
+        return new_state, reward, done, self.epsilon
 
     def _train_nstep_sarsa(self, env):
         N=3
@@ -208,33 +215,36 @@ class Agent:
             self.epsilon = self.EPSILON_MIN
         return episode_reward, self.epsilon
 
-    def predict(self, state):
-        ret_val = self.model[state[0, 0], state[0, 1], :]
-        return ret_val
+
 
 if __name__ == "__main__":
-    agent_types = ["SARSA","Q-Learning","Expected SARSA", "n-step SARSA"]
+    agent_types = ["SARSA","Q-Learning","Expected SARSA"]#, "n-step SARSA"]
     #agent_types = ["n-step SARSA"]
 
     # Train
-    rewards = {}
-    rewards_average = {}
+    epi_reward = {}
+    epi_reward_average = {}
     for i in range(len(agent_types)):
         env = CliffWalkingEnv()
         agent = Agent(agent_types[i])
-        rewards[i] = np.zeros([EPISODES])
-        rewards_average[i] = np.zeros([EPISODES])
+        epi_reward[i] = np.zeros([EPISODES])
+        epi_reward_average[i] = np.zeros([EPISODES])
         for e in range(EPISODES):
-            episode_reward, epsilon = agent.train_episode(env)
-            rewards[i][e] = episode_reward
-            rewards_average[i][e] = np.mean(rewards[i][max(0,e-20):e])
-            print("episode: {} epsilon:{} reward:{} averaged reward:{}".format(e, epsilon, rewards[i][e], rewards_average[i][e]))
+            state = agent.init_episode(env)
+            # Here the plot can be added for the initial state
+            done = False
+            while not done:
+                state, reward, done, epsilon = agent.train_step(env)
+                epi_reward[i][e] += reward
+                # Here the plot can be added to plot every step
+            epi_reward_average[i][e] = np.mean(epi_reward[i][max(0,e-20):e])
+            print("episode: {} epsilon:{} reward:{} averaged reward:{}".format(e, epsilon, epi_reward[i][e], epi_reward_average[i][e]))
 
-    #Plot
+    # Plot Rewards
     fig, ax = plt.subplots()
     fig.suptitle('Rewards')
-    for j in range(len(rewards_average)):
-        ax.plot(range(len(rewards_average[j])), rewards_average[j], label=agent_types[j])
+    for j in range(len(epi_reward_average)):
+        ax.plot(range(len(epi_reward_average[j])), epi_reward_average[j], label=agent_types[j])
     legend = ax.legend(loc='lower right', shadow=True, fontsize='x-large')
     plt.xlabel("Episode")
     plt.ylabel("Reward")
